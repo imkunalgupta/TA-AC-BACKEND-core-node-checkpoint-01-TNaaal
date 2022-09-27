@@ -5,6 +5,7 @@ var qs = require('querystring');
 var server = http.createServer(handlerequest);
 var usersPath = __dirname + '/contacts/';
 function handlerequest(req, res) {
+  console.log(req.headers);
   let parsedUrl = url.parse(req.url, true);
   let pathname = parsedUrl.pathname;
   var store = '';
@@ -28,10 +29,13 @@ function handlerequest(req, res) {
         if (err) return console.log(err);
         return res.end(content);
       });
-    } else if (
-      pathname.split('.').pop().toLowerCase() === 'jpg' ||
-      pathname.split('.').pop().toLowerCase() === 'jpeg' ||
-      pathname.split('.').pop().toLowerCase() === 'webp'
+    }
+    //images
+    else if (
+      req.method === 'GET' &&
+      (pathname.split('.').pop().toLowerCase() === 'jpg' ||
+        pathname.split('.').pop().toLowerCase() === 'jpeg' ||
+        pathname.split('.').pop().toLowerCase() === 'webp')
     ) {
       res.setHeader(
         'Content-Type',
@@ -64,7 +68,7 @@ function handlerequest(req, res) {
         });
       } else {
         var username = parsedUrl.query.username;
-        fs.readFile(userPath + username + '.json', (err, content) => {
+        fs.readFile(usersPath + username + '.json', (err, content) => {
           if (err) return console.log(err);
           res.setHeader('Content-Type', 'application/json');
           return res.end(content);
@@ -78,13 +82,15 @@ function handlerequest(req, res) {
     }
     //To Save User
     else if (pathname === '/form' && req.method === 'POST') {
-      var username = JSON.parse(store).username;
-      fs.open(usersPath + username + '.json', 'wx', (err, fd) => {
+      var parsedData = qs.parse(store);
+      if (!parsedData.username) return res.end('Username is required');
+      if (!parsedData.name) return res.end('Name is required');
+      fs.open(usersPath + parsedData.username + '.json', 'wx', (err, fd) => {
         if (err) return console.log(err);
-        fs.writeFile(fd, store, (err) => {
+        fs.writeFile(fd, JSON.stringify(parsedData), (err) => {
           if (err) return console.log(err);
           fs.close(fd, () => {
-            return res.end(`${username} created successfully`);
+            return res.end(`${parsedData.username} created successfully`);
           });
         });
       });
